@@ -54,6 +54,13 @@ const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
     const cy = cyRef.current;
     if (!cy) return;
     cy.json({ elements });
+    // 应用每个节点 element 上声明的 style（width/height）
+    elements.forEach(el => {
+      if (el.style && el.data?.id) {
+        const node = cy.getElementById(el.data.id);
+        if (node.length) node.style(el.style);
+      }
+    });
     cy.layout(layout).run();
   }, [elements]); // eslint-disable-line react-hooks/exhaustive-deps
 

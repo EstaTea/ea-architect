@@ -25,13 +25,14 @@ export const PROTOCOL_COLORS = {
 };
 
 // 能力地图样式（Capability Map）
+// 不使用 compound nodes，用 z-index 实现视觉层叠：L0 底层 → L2 顶层
 export const capabilityStyles = [
   {
     selector: 'node[type="capability"][level=0]',
     style: {
       'shape': 'rectangle',
-      'background-color': '#f0f2f5',
-      'background-opacity': 0.95,
+      'background-color': '#dde3ed',
+      'background-opacity': 1,
       'border-color': '#1a1a2e',
       'border-width': 2,
       'label': 'data(name)',
@@ -40,18 +41,18 @@ export const capabilityStyles = [
       'font-size': '13px',
       'font-weight': 'bold',
       'color': '#1a1a2e',
-      'text-margin-y': 8,
+      'text-margin-y': 10,
       'text-wrap': 'wrap',
       'text-max-width': '300px',
-      'padding': '0px',
+      'z-index': 1,
     }
   },
   {
     selector: 'node[type="capability"][level=1]',
     style: {
       'shape': 'rectangle',
-      'background-color': '#e8eaf6',
-      'background-opacity': 0.7,
+      'background-color': '#c5cae9',
+      'background-opacity': 1,
       'border-color': '#5c6bc0',
       'border-width': 1.5,
       'label': 'data(name)',
@@ -59,11 +60,11 @@ export const capabilityStyles = [
       'text-halign': 'center',
       'font-size': '11px',
       'font-weight': '600',
-      'color': '#3c3f8f',
-      'text-margin-y': 6,
+      'color': '#283593',
+      'text-margin-y': 7,
       'text-wrap': 'wrap',
       'text-max-width': '200px',
-      'padding': '0px',
+      'z-index': 2,
     }
   },
   {
@@ -71,16 +72,17 @@ export const capabilityStyles = [
     style: {
       'shape': 'rectangle',
       'background-color': 'data(maturityColor)',
-      'border-color': '#bbb',
+      'border-color': '#888',
       'border-width': 1,
       'label': 'data(name)',
       'text-valign': 'center',
       'text-halign': 'center',
       'font-size': '10px',
       'font-weight': '500',
-      'color': '#222',
+      'color': '#111',
       'text-wrap': 'wrap',
       'text-max-width': '140px',
+      'z-index': 3,
     }
   },
   {
@@ -88,13 +90,14 @@ export const capabilityStyles = [
     style: {
       'shape': 'rectangle',
       'background-color': 'data(maturityColor)',
-      'border-color': '#ccc',
+      'border-color': '#aaa',
       'border-width': 1,
       'label': 'data(name)',
       'text-valign': 'center',
       'font-size': '9px',
       'text-wrap': 'wrap',
       'text-max-width': '120px',
+      'z-index': 4,
     }
   },
   {
