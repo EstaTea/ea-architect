@@ -1,0 +1,13 @@
+{
+  "name": "ea-architect",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "npm run build --prefix client",
+    "install:all": "npm install && npm install --prefix client"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}
