@@ -4,19 +4,26 @@ import { fetchArchitecture, saveArchitecture } from './api.js';
 const useStore = create((set, get) => ({
   nodes: [],
   edges: [],
-  sha: null,                   // GitHub 文件当前 SHA，写入时必须携带
-  currentView: 'capability',   // 'capability' | 'integration'
+  positions: {},               // 集成图节点位置 { [nodeId]: {x, y} }
+  sha: null,
+  currentView: 'capability',
   selectedId: null,
-  selectedType: null,          // 'node' | 'edge'
+  selectedType: null,
   searchQuery: '',
   loading: true,
-  modalState: null,            // null | { mode: 'add'|'edit', type: 'node'|'edge', data?: {} }
+  modalState: null,
 
   loadData: async () => {
     set({ loading: true });
     try {
       const data = await fetchArchitecture();
-      set({ nodes: data.nodes || [], edges: data.edges || [], sha: data.sha || null, loading: false });
+      set({
+        nodes: data.nodes || [],
+        edges: data.edges || [],
+        positions: data.positions || {},
+        sha: data.sha || null,
+        loading: false,
+      });
     } catch (e) {
       console.error('Load failed:', e);
       set({ loading: false });
@@ -24,13 +31,19 @@ const useStore = create((set, get) => ({
   },
 
   persist: async () => {
-    const { nodes, edges, sha } = get();
+    const { nodes, edges, sha, positions } = get();
     try {
-      const result = await saveArchitecture(nodes, edges, sha);
-      if (result.sha) set({ sha: result.sha }); // 更新本地 SHA 缓存
+      const result = await saveArchitecture(nodes, edges, sha, positions);
+      if (result.sha) set({ sha: result.sha });
     } catch (e) {
       console.error('Save failed:', e);
     }
+  },
+
+  // 更新节点位置（拖拽或布局完成后调用）
+  savePositions: (newPositions) => {
+    set(state => ({ positions: { ...state.positions, ...newPositions } }));
+    get().persist();
   },
 
   upsertNode: (node) => {
@@ -45,12 +58,17 @@ const useStore = create((set, get) => ({
   },
 
   deleteNode: (id) => {
-    set(state => ({
-      nodes: state.nodes.filter(n => n.id !== id),
-      edges: state.edges.filter(e => e.source !== id && e.target !== id),
-      selectedId: state.selectedId === id ? null : state.selectedId,
-      selectedType: state.selectedId === id ? null : state.selectedType,
-    }));
+    set(state => {
+      const positions = { ...state.positions };
+      delete positions[id];
+      return {
+        nodes: state.nodes.filter(n => n.id !== id),
+        edges: state.edges.filter(e => e.source !== id && e.target !== id),
+        selectedId: state.selectedId === id ? null : state.selectedId,
+        selectedType: state.selectedId === id ? null : state.selectedType,
+        positions,
+      };
+    });
     get().persist();
   },
 
@@ -81,8 +99,8 @@ const useStore = create((set, get) => ({
   closeModal: () => set({ modalState: null }),
 
   exportJSON: () => {
-    const { nodes, edges } = get();
-    const blob = new Blob([JSON.stringify({ nodes, edges }, null, 2)], { type: 'application/json' });
+    const { nodes, edges, positions } = get();
+    const blob = new Blob([JSON.stringify({ nodes, edges, positions }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

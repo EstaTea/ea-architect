@@ -1,6 +1,6 @@
 // Netlify Function：代理 GitHub Contents API，把 token 藏在服务端
 // GET  /.netlify/functions/architecture        → 读取 architecture.json
-// PUT  /.netlify/functions/architecture        → 覆盖写入（body: { nodes, edges, sha }）
+// PUT  /.netlify/functions/architecture        → 覆盖写入（body: { nodes, edges, positions, sha }）
 
 const GH_TOKEN = process.env.GITHUB_TOKEN;
 const GH_OWNER = process.env.GITHUB_OWNER;
@@ -21,7 +21,6 @@ const CORS = {
 };
 
 export const handler = async (event) => {
-  // Preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: CORS };
   }
@@ -31,22 +30,25 @@ export const handler = async (event) => {
       const res = await fetch(GH_API, { headers: GH_HEADERS });
       if (res.status === 404) {
         return { statusCode: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nodes: [], edges: [], sha: null }) };
+          body: JSON.stringify({ nodes: [], edges: [], positions: {}, sha: null }) };
       }
       if (!res.ok) throw new Error(`GitHub GET ${res.status}`);
       const json = await res.json();
       const data = JSON.parse(Buffer.from(json.content, 'base64').toString('utf-8'));
-      data.sha = json.sha; // 返回 sha 给前端缓存，写入时需要
+      data.sha = json.sha;
+      if (!data.positions) data.positions = {};
       return { statusCode: 200, headers: { ...CORS, 'Content-Type': 'application/json' },
         body: JSON.stringify(data) };
     }
 
     if (event.httpMethod === 'PUT') {
-      const { nodes, edges, sha } = JSON.parse(event.body);
+      const { nodes, edges, positions, sha } = JSON.parse(event.body);
       if (!Array.isArray(nodes) || !Array.isArray(edges)) {
         return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Invalid body' }) };
       }
-      const content = Buffer.from(JSON.stringify({ nodes, edges }, null, 2)).toString('base64');
+      const content = Buffer.from(JSON.stringify(
+        { nodes, edges, positions: positions || {} }, null, 2
+      )).toString('base64');
       const body = { message: 'Update architecture data', content };
       if (sha) body.sha = sha;
 
@@ -56,7 +58,6 @@ export const handler = async (event) => {
         body: JSON.stringify(body),
       });
 
-      // SHA 冲突：重新获取 SHA 后重试
       if (res.status === 409) {
         const latest = await fetch(GH_API, { headers: GH_HEADERS });
         const latestJson = await latest.json();

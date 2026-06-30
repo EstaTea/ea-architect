@@ -12,6 +12,7 @@ const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
   const containerRef = useRef(null);
   const cyRef = useRef(null);
   const setSelected = useStore(s => s.setSelected);
+  const prevElementsRef = useRef(null);
 
   useImperativeHandle(ref, () => ({
     getCy: () => cyRef.current,
@@ -31,37 +32,50 @@ const CytoscapeCanvas = forwardRef(function CytoscapeCanvas(
     });
     cyRef.current = cy;
 
-    cy.on('tap', 'node', (evt) => {
-      setSelected(evt.target.id(), 'node');
-    });
-    cy.on('tap', 'edge', (evt) => {
-      setSelected(evt.target.id(), 'edge');
-    });
-    cy.on('tap', (evt) => {
-      if (evt.target === cy) setSelected(null, null);
-    });
+    cy.on('tap', 'node', (evt) => { setSelected(evt.target.id(), 'node'); });
+    cy.on('tap', 'edge', (evt) => { setSelected(evt.target.id(), 'edge'); });
+    cy.on('tap', (evt) => { if (evt.target === cy) setSelected(null, null); });
 
     onCyReady?.(cy);
 
-    return () => {
-      cy.destroy();
-      cyRef.current = null;
-    };
+    return () => { cy.destroy(); cyRef.current = null; };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 数据更新时同步到 Cytoscape（不重建实例）
+  // 数据更新时增量同步——不覆盖已有节点位置
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
-    cy.json({ elements });
-    // 应用每个节点 element 上声明的 style（width/height）
+
+    const newIds = new Set(elements.map(el => el.data.id));
+    const oldIds = new Set(cy.elements().map(el => el.id()));
+
+    // 删除不再存在的元素
+    cy.elements().filter(el => !newIds.has(el.id())).remove();
+
+    // 新增不存在的元素（保留已有元素的位置不变）
     elements.forEach(el => {
-      if (el.style && el.data?.id) {
-        const node = cy.getElementById(el.data.id);
-        if (node.length) node.style(el.style);
+      if (!oldIds.has(el.data.id)) {
+        cy.add(el);
+      }
+      // 更新 data（不动 position）
+      const existing = cy.getElementById(el.data.id);
+      if (existing.length) {
+        existing.data(el.data);
+        // 只有 element 声明了 style 才应用（capability map 的 width/height）
+        if (el.style) existing.style(el.style);
       }
     });
-    cy.layout(layout).run();
+
+    const isFirstLoad = prevElementsRef.current === null;
+    prevElementsRef.current = elements;
+
+    // 首次加载或没有 preset 位置时才跑布局
+    const isPreset = layout.name === 'preset';
+    if (isFirstLoad || !isPreset) {
+      cy.layout(layout).run();
+    } else if (isFirstLoad && isPreset) {
+      cy.fit(undefined, 60);
+    }
   }, [elements]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
