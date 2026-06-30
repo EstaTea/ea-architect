@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import CytoscapeCanvas from './CytoscapeCanvas.jsx';
 import { integrationStyles } from '../cytoscapeStyles.js';
 import useStore from '../store.js';
@@ -6,7 +6,7 @@ import useStore from '../store.js';
 const FCOSE_LAYOUT = {
   name: 'fcose',
   quality: 'default',
-  randomize: false,
+  randomize: true,
   animate: true,
   animationDuration: 600,
   nodeRepulsion: 8000,
@@ -55,6 +55,18 @@ export default function IntegrationView({ canvasRef }) {
       }
     }))
   ], [appNodes, intEdges]);
+
+  // 收到父页面 postMessage('ea:fit') 时重新布局（解决 iframe 初始高度为0的问题）
+  useEffect(() => {
+    const handler = () => {
+      const cy = canvasRef?.current?.getCy();
+      if (cy) {
+        cy.layout({ ...FCOSE_LAYOUT, randomize: true }).run();
+      }
+    };
+    window.addEventListener('ea-refit', handler);
+    return () => window.removeEventListener('ea-refit', handler);
+  }, [canvasRef]);
 
   return (
     <CytoscapeCanvas
