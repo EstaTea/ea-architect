@@ -177,13 +177,15 @@ export const integrationStyles = [
       'width': 2,
       'target-arrow-shape': 'triangle',
       'curve-style': 'bezier',
-      'label': 'data(protocol)',
+      'label': 'data(description)',
       'font-size': '9px',
       'color': '#595959',
       'text-background-color': '#fff',
       'text-background-opacity': 0.85,
       'text-background-padding': '2px',
       'edge-text-rotation': 'autorotate',
+      'text-max-width': '120px',
+      'text-wrap': 'wrap',
     }
   },
   {
