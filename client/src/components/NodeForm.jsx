@@ -68,9 +68,15 @@ export default function NodeForm() {
 
   useEffect(() => {
     if (isOpen) {
-      setForm(isEdit && existing ? toForm(existing) : getDefault());
+      if (isEdit && existing) {
+        setForm(toForm(existing));
+      } else {
+        // 根据调用来源设置默认类型：+ App 按钮传入 defaultType
+        const defaultType = modalState?.data?.defaultType || 'capability';
+        setForm(getDefault(defaultType));
+      }
     }
-  }, [isOpen, isEdit, existing]);
+  }, [isOpen, isEdit, existing, modalState]);
 
   if (!isOpen) return null;
 
@@ -193,9 +199,9 @@ export default function NodeForm() {
   );
 }
 
-function getDefault() {
+function getDefault(type = 'capability') {
   return {
-    name: '', type: 'capability', category: 'core', parent: '',
+    name: '', type, category: 'core', parent: '',
     meta: { status: 'active', maturity: 3, owner: '', description: '', vendor: '', version: '', tagsStr: '' },
   };
 }
